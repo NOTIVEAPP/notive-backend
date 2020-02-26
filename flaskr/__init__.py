@@ -22,7 +22,7 @@ def create_app(test_config=None):
     # a simple page that says hello
     @app.route('/')
     def hello():
-        return 'Hello, World!'
+        return 'Notive API is up and running!'
 
     db.init_app(app)
     app.register_blueprint(auth.bp)
