@@ -1,0 +1,13 @@
+.DS_Store
+build/*
+dist/*
+flaskr.egg-info/*
+venv/*
+*.pyc
+__pycache__/*
+instance/*
+.pytest_cache/*
+.coverage
+htmlcov/*
+.idea/*
+env.py
