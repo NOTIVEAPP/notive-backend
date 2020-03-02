@@ -1,5 +1,9 @@
 DROP DATABASE IF EXISTS notive;
 CREATE DATABASE notive;
+ALTER DATABASE
+    notive
+    CHARACTER SET = utf8mb4
+    COLLATE = utf8mb4_unicode_ci;
 USE notive;
 
 CREATE TABLE `User` (
