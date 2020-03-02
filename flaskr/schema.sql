@@ -6,9 +6,7 @@ CREATE TABLE `User` (
 	`id` INT(10) PRIMARY KEY AUTO_INCREMENT,
 	`email` varchar(50) NOT NULL UNIQUE,
 	`password` varchar(100) NOT NULL,
-	`name` varchar(50),
-	`surname` varchar(50),
-	`date_of_birth` DATE,
+	`name` varchar(50) NOT NULL UNIQUE,
 	`created_at` INT(11)
 );
 
