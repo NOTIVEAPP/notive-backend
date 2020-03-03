@@ -25,7 +25,9 @@ def get_all():
     list_table = Table('List', metadata, autoload=True)
 
     result = dict()
-    result["items"] = []
+    #result["items"] = []
+    #result["items"] = {}
+    result_dict = {}
 
     lists = list_table.select(list_table.c.user_id == user['id']).execute()
 
@@ -41,10 +43,14 @@ def get_all():
     """)
 
     for qr in query_res:
-        result["items"].append(dict(qr))
+        if qr.list_id in result_dict:
+            result_dict[qr.list_id].append(qr)
+        else:
+            result_dict[qr.list_id] = [qr]
+    result["items"] = result_dict
 
     msg = {"message": "Success!",
-           "data": result}
+           "data": result_dict}
     return make_response(jsonify(msg), 200)
 
 
