@@ -23,7 +23,7 @@ def check_password(plain_text_password, hashed_password):
     return bcrypt.checkpw(str(plain_text_password).encode('utf-8'), hashed_password.encode('utf-8'))
 
 
-@bp.route('/register', methods=['POST'])
+@bp.route('/register', methods=['POST'], strict_slashes=False)
 def register():
     if not validate_auth_key(request):
         return Response(status=401)
@@ -58,7 +58,7 @@ def register():
             return make_response(jsonify(msg), 200)
 
 
-@bp.route('/login', methods=['POST'])
+@bp.route('/login', methods=['POST'], strict_slashes=False)
 def login():
     if not validate_auth_key(request):
         return Response(status=401)
@@ -102,7 +102,7 @@ def login():
                 return make_response(jsonify(msg), 200)
 
 
-@bp.route('/update_password', methods=['PUT'])
+@bp.route('/update_password', methods=['PUT'], strict_slashes=False)
 def update_pass():
     if not validate_auth_key(request):
         return Response(status=401)

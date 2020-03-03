@@ -11,7 +11,7 @@ from .auth import login_required
 bp = Blueprint('list', __name__, url_prefix='/list')
 
 
-@bp.route('/', methods=['GET', 'POST'])
+@bp.route('/', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def index():
     if not validate_auth_key(request):
@@ -85,7 +85,7 @@ def get_list(l_id, check_user=True):
     return user_list, 500
 
 
-@bp.route('/<int:l_id>', methods=['GET'])
+@bp.route('/<int:l_id>', methods=['GET'], strict_slashes=False)
 @login_required
 def get_list_with_id(l_id):
     if not validate_auth_key(request):
@@ -103,7 +103,7 @@ def get_list_with_id(l_id):
             return make_response(jsonify(data), status)
 
 
-@bp.route('/<int:l_id>', methods=['PUT'])
+@bp.route('/<int:l_id>', methods=['PUT'], strict_slashes=False)
 @login_required
 def update(l_id):
     if not validate_auth_key(request):
@@ -139,7 +139,7 @@ def update(l_id):
                 return make_response(jsonify(msg), 200)
 
 
-@bp.route('/<int:l_id>', methods=['DELETE'])
+@bp.route('/<int:l_id>', methods=['DELETE'], strict_slashes=False)
 @login_required
 def delete(l_id):
     if not validate_auth_key(request):

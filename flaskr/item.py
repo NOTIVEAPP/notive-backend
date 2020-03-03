@@ -15,7 +15,7 @@ from .list import get_list
 bp = Blueprint('item', __name__, url_prefix='/item')
 
 
-@bp.route('/', methods=['GET'])
+@bp.route('/', methods=['GET'], strict_slashes=False)
 @login_required
 def get_all():
     user = g.user
@@ -48,7 +48,7 @@ def get_all():
     return make_response(jsonify(msg), 200)
 
 
-@bp.route('/<int:list_id>', methods=['GET'])
+@bp.route('/<int:list_id>', methods=['GET'], strict_slashes=False)
 @login_required
 def get_list_items(list_id):
     user_list, status = get_list(list_id)
@@ -77,7 +77,7 @@ def get_list_items(list_id):
         return make_response(jsonify(msg), 200)
 
 
-@bp.route('/<int:list_id>/<int:item_id>', methods=['GET'])
+@bp.route('/<int:list_id>/<int:item_id>', methods=['GET'], strict_slashes=False)
 @login_required
 def get_item_only(list_id, item_id):
     user_item, status = get_item(list_id, item_id)
@@ -103,7 +103,7 @@ def get_item_only(list_id, item_id):
         return make_response(jsonify(data), status)
 
 
-@bp.route('/', methods=['POST'])
+@bp.route('/', methods=['POST'], strict_slashes=False)
 @login_required
 def create():
     if not validate_auth_key(request):
@@ -168,7 +168,7 @@ def get_item(list_id, item_id, check_user=True):
     return item, 500
 
 
-@bp.route('/<int:list_id>/<int:item_id>', methods=['PUT'])
+@bp.route('/<int:list_id>/<int:item_id>', methods=['PUT'], strict_slashes=False)
 @login_required
 def update(list_id, item_id):
     if not validate_auth_key(request):
@@ -204,7 +204,7 @@ def update(list_id, item_id):
                 return make_response(jsonify(msg), 200)
 
 
-@bp.route('/<int:list_id>/<int:item_id>/check', methods=['PUT'])
+@bp.route('/<int:list_id>/<int:item_id>/check', methods=['PUT'], strict_slashes=False)
 @login_required
 def check(list_id, item_id):
     if not validate_auth_key(request):
@@ -234,7 +234,7 @@ def check(list_id, item_id):
             return make_response(jsonify(msg), 200)
 
 
-@bp.route('/<int:list_id>/<int:item_id>', methods=['DELETE'])
+@bp.route('/<int:list_id>/<int:item_id>', methods=['DELETE'], strict_slashes=False)
 @login_required
 def delete(list_id, item_id):
     if not validate_auth_key(request):
