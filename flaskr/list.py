@@ -11,63 +11,57 @@ from .auth import login_required
 bp = Blueprint('list', __name__, url_prefix='/list')
 
 
-@bp.route('/', methods=['GET'])
+@bp.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
     if not validate_auth_key(request):
         return Response(status=401)
     else:
-        db = get_db()
-        con, engine, metadata = db['con'], db['engine'], db['metadata']
-        list_table = Table('List', metadata, autoload=True)
-        user = g.user
-        result = dict()
-        result["lists"] = []
-        count = 0
-        lists = list_table.select(list_table.c.user_id == user['id']).execute()
+        if request.method == 'POST':
+            json_data = get_json_from_keys(request, ['name'])
+            if json_data is False:
+                return make_response(jsonify(
+                    {"message": "Request body must be JSON."}), 400)
+            elif json_data is None:
+                return make_response(jsonify({"message": "Invalid parameters."}), 400)
+            else:
+                name = json_data['name']
 
-        for l in lists:
-            result["lists"].append(dict(l))
-            count += 1
+                msg = {"message": "Something went wrong."}
+                if not name:
+                    msg = {"message": "Error: Provide a name for this list!"}
+                    return make_response(jsonify(msg), 400)
 
-        result["number_of_lists"] = count
-        msg = {"message": "Success!",
-               "data": result}
-        return make_response(jsonify(msg), 200)
+                user_id = g.user['id']
+                created_at = int(time.time())
 
+                db = get_db()
+                con, engine, metadata = db['con'], db['engine'], db['metadata']
+                list_table = Table('List', metadata, autoload=True)
 
-@bp.route('/', methods=['POST'])
-@login_required
-def create():
-    if not validate_auth_key(request):
-        return Response(status=401)
-    else:
-        json_data = get_json_from_keys(request, ['name'])
-        if json_data is False:
-            return make_response(jsonify(
-                {"message": "Request body must be JSON."}), 400)
-        elif json_data is None:
-            return make_response(jsonify({"message": "Invalid parameters."}), 400)
+                res = con.execute(list_table.insert(), name=name, user_id=user_id, created_at=created_at)
+
+                result = {'list_id': res.lastrowid,
+                          'created_at': created_at}
+                msg = {"message": "New list is created successfully!",
+                       "data": result}
+                return make_response(jsonify(msg), 200)
         else:
-            name = json_data['name']
-
-            msg = {"message": "Something went wrong."}
-            if not name:
-                msg = {"message": "Error: Provide a name for this list!"}
-                return make_response(jsonify(msg), 400)
-
-            user_id = g.user['id']
-            created_at = int(time.time())
-
             db = get_db()
             con, engine, metadata = db['con'], db['engine'], db['metadata']
             list_table = Table('List', metadata, autoload=True)
+            user = g.user
+            result = dict()
+            result["lists"] = []
+            count = 0
+            lists = list_table.select(list_table.c.user_id == user['id']).execute()
 
-            res = con.execute(list_table.insert(), name=name, user_id=user_id, created_at=created_at)
+            for l in lists:
+                result["lists"].append(dict(l))
+                count += 1
 
-            result = {'list_id': res.lastrowid,
-                      'created_at': created_at}
-            msg = {"message": "New list is created successfully!",
+            result["number_of_lists"] = count
+            msg = {"message": "Success!",
                    "data": result}
             return make_response(jsonify(msg), 200)
 
