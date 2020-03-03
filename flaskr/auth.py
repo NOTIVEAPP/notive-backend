@@ -141,7 +141,7 @@ def load_logged_in_user():
         g.user = users.select(users.c.id == user_id).execute().first()
 
 
-@bp.route('/logout')
+@bp.route('/logout', methods=['GET'])
 def logout():
     session.clear()
     msg = {"message": "Successfully logged out!"}
