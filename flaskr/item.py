@@ -44,9 +44,9 @@ def get_all():
 
     for qr in query_res:
         if qr.list_id in result_dict:
-            result_dict[qr.list_id].append(qr)
+            result_dict[qr.list_id].append(dict(qr))
         else:
-            result_dict[qr.list_id] = [qr]
+            result_dict[qr.list_id] = [dict(qr)]
     result["items"] = result_dict
 
     msg = {"message": "Success!",
