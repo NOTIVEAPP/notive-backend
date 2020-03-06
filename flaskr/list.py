@@ -4,6 +4,7 @@ from flask import (
     Blueprint, g, request, jsonify, make_response, Response
 )
 from sqlalchemy import Table
+from sqlalchemy.exc import SQLAlchemyError
 from .util import validate_auth_key, get_json_from_keys
 from .db import get_db
 from .auth import login_required
@@ -27,40 +28,55 @@ def index():
             else:
                 name = json_data['name']
 
-                msg = {"message": "Something went wrong."}
                 if not name:
                     msg = {"message": "Error: Provide a name for this list!"}
                     return make_response(jsonify(msg), 400)
 
                 user_id = g.user['id']
                 created_at = int(time.time())
+                try:
+                    db = get_db()
+                    con, engine, metadata = db['con'], db['engine'], db['metadata']
+                    list_table = Table('List', metadata, autoload=True)
 
+                    res = con.execute(list_table.insert(), name=name, user_id=user_id, created_at=created_at)
+
+                    result = {'list_id': res.lastrowid,
+                              'created_at': created_at}
+                    msg = {"message": "New list is created successfully!",
+                           "data": result}
+                    return make_response(jsonify(msg), 200)
+                except SQLAlchemyError as e:
+                    error = e.__dict__['orig']
+                    print("DB ERROR: " + str(error))
+                    msg = {"message": "A server error has been occurred. "
+                                      "Please try again later and contact us if the error persists. (Error code: "
+                                      + str(error.args[0]) + ")",
+                           "data": str(error)}
+                    return make_response(jsonify(msg), 500)
+        else:
+            try:
                 db = get_db()
                 con, engine, metadata = db['con'], db['engine'], db['metadata']
                 list_table = Table('List', metadata, autoload=True)
-
-                res = con.execute(list_table.insert(), name=name, user_id=user_id, created_at=created_at)
-
-                result = {'list_id': res.lastrowid,
-                          'created_at': created_at}
-                msg = {"message": "New list is created successfully!",
-                       "data": result}
-                return make_response(jsonify(msg), 200)
-        else:
-            db = get_db()
-            con, engine, metadata = db['con'], db['engine'], db['metadata']
-            list_table = Table('List', metadata, autoload=True)
-            user = g.user
+                user = g.user
+                lists = list_table.select(list_table.c.user_id == user['id']).execute()
+            except SQLAlchemyError as e:
+                error = e.__dict__['orig']
+                print("DB ERROR: " + str(error))
+                msg = {"message": "A server error has been occurred. "
+                                  "Please try again later and contact us if the error persists. (Error code: "
+                                  + str(error.args[0]) + ")",
+                       "data": str(error)}
+                return make_response(jsonify(msg), 500)
             result = dict()
             result["lists"] = []
             count = 0
-            lists = list_table.select(list_table.c.user_id == user['id']).execute()
-
             for l in lists:
                 result["lists"].append(dict(l))
                 count += 1
-
             result["number_of_lists"] = count
+
             msg = {"message": "Success!",
                    "data": result}
             return make_response(jsonify(msg), 200)
@@ -129,14 +145,22 @@ def update(l_id):
                 if name is None:
                     msg = {"message": "Please provide a name!"}
                     return make_response(jsonify(msg), 400)
+                try:
+                    db = get_db()
+                    con, engine, metadata = db['con'], db['engine'], db['metadata']
+                    list_table = Table('List', metadata, autoload=True)
+                    con.execute(list_table.update().where(list_table.c.id == l_id).values(name=name))
 
-                db = get_db()
-                con, engine, metadata = db['con'], db['engine'], db['metadata']
-                list_table = Table('List', metadata, autoload=True)
-                con.execute(list_table.update().where(list_table.c.id == l_id).values(name=name))
-
-                msg = {"message": "Success! List name is updated."}
-                return make_response(jsonify(msg), 200)
+                    msg = {"message": "Success! List name is updated."}
+                    return make_response(jsonify(msg), 200)
+                except SQLAlchemyError as e:
+                    error = e.__dict__['orig']
+                    print("DB ERROR: " + str(error))
+                    msg = {"message": "A server error has been occurred. "
+                                      "Please try again later and contact us if the error persists. (Error code: "
+                                      + str(error.args[0]) + ")",
+                           "data": str(error)}
+                    return make_response(jsonify(msg), 500)
 
 
 @bp.route('/<int:l_id>', methods=['DELETE'], strict_slashes=False)
@@ -153,14 +177,23 @@ def delete(l_id):
             msg = {"message": "List is not yours!"}
             return make_response(jsonify(msg), status)
         else:
-            db = get_db()
-            con, engine, metadata = db['con'], db['engine'], db['metadata']
+            try:
+                db = get_db()
+                con, engine, metadata = db['con'], db['engine'], db['metadata']
 
-            item_table = Table('Item', metadata, autoload=True)
-            con.execute(item_table.delete().where(item_table.c.list_id == l_id))
+                item_table = Table('Item', metadata, autoload=True)
+                con.execute(item_table.delete().where(item_table.c.list_id == l_id))
 
-            list_table = Table('List', metadata, autoload=True)
-            con.execute(list_table.delete().where(list_table.c.id == l_id))
+                list_table = Table('List', metadata, autoload=True)
+                con.execute(list_table.delete().where(list_table.c.id == l_id))
 
-            msg = {"message": "List is deleted successfully."}
-            return make_response(jsonify(msg), 200)
+                msg = {"message": "List is deleted successfully."}
+                return make_response(jsonify(msg), 200)
+            except SQLAlchemyError as e:
+                error = e.__dict__['orig']
+                print("DB ERROR: " + str(error))
+                msg = {"message": "A server error has been occurred. "
+                                  "Please try again later and contact us if the error persists. (Error code: "
+                                  + str(error.args[0]) + ")",
+                       "data": str(error)}
+                return make_response(jsonify(msg), 500)

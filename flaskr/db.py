@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy import create_engine, MetaData
 from .env import DB_DATABASE, DB_PORT, DB_HOST, DB_PASSWORD, DB_USERNAME
 import click
 from flask import current_app, g
@@ -15,7 +15,7 @@ def get_db():
     return {'con': g.con, 'engine': g.engine, 'metadata': g.metadata}
 
 
-def close_db(e=None):
+def close_db():
     con = g.pop('con', None)
 
     if con is not None:

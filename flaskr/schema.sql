@@ -8,7 +8,7 @@ USE notive;
 
 CREATE TABLE `User` (
 	`id` INT(10) PRIMARY KEY AUTO_INCREMENT,
-	`email` varchar(50) NOT NULL UNIQUE,
+	`email` varchar(100) NOT NULL UNIQUE,
 	`password` varchar(100) NOT NULL,
 	`name` varchar(50) NOT NULL UNIQUE,
 	`created_at` INT(11)
@@ -16,7 +16,7 @@ CREATE TABLE `User` (
 
 CREATE TABLE `List` (
 	`id` INT(10) PRIMARY KEY AUTO_INCREMENT,
-	`name` varchar(50) NOT NULL,
+	`name` varchar(100) NOT NULL,
 	`is_done` BOOLEAN NOT NULL DEFAULT '0',
 	`user_id` INT(10) NOT NULL,
 	`created_at` INT(11) NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE `List` (
 
 CREATE TABLE `Item` (
 	`id` INT(10) PRIMARY KEY AUTO_INCREMENT,
-	`name` varchar(50) NOT NULL,
+	`name` varchar(150) NOT NULL,
 	`list_id` INT(10) NOT NULL,
 	`is_done` BOOLEAN NOT NULL DEFAULT '0',
 	`created_at` INT(11) NOT NULL,

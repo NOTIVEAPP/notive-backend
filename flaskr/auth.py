@@ -4,10 +4,9 @@ import bcrypt
 from flask import (
     Blueprint, g, request, session, jsonify, make_response, Response
 )
-from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy import Table
+from sqlalchemy.exc import SQLAlchemyError
 from .util import validate_auth_key, get_json_from_keys
-
 from .db import get_db
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -43,7 +42,6 @@ def register():
             con, engine, metadata = db['con'], db['engine'], db['metadata']
             users = Table('User', metadata, autoload=True)
 
-            msg = {"message": "Something went wrong."}
             if not name or not password_plain or not email:
                 msg = {"message": "Error: Missing parameters!"}
                 return make_response(jsonify(msg), 400)
@@ -51,11 +49,20 @@ def register():
             if users.select(users.c.email == email).execute().first():
                 msg = {"message": "There is an existing user with this e-mail address!"}
                 return make_response(jsonify(msg), 400)
-            con.execute(users.insert(), name=name, email=email,
-                        password=get_hashed_password(json_data['password']).decode("utf-8"),
-                        created_at=int(time.time()))
-            msg = {"message": "You have registered successfully!"}
-            return make_response(jsonify(msg), 200)
+            try:
+                con.execute(users.insert(), name=name, email=email,
+                            password=get_hashed_password(json_data['password']).decode("utf-8"),
+                            created_at=int(time.time()))
+                msg = {"message": "You have registered successfully!"}
+                return make_response(jsonify(msg), 200)
+            except SQLAlchemyError as e:
+                error = e.__dict__['orig']
+                print("DB ERROR: " + str(error))
+                msg = {"message": "A server error has been occurred. "
+                                  "Please try again later and contact us if the error persists. (Error code: "
+                                  + str(error.args[0]) + ")",
+                       "data": str(error)}
+                return make_response(jsonify(msg), 500)
 
 
 @bp.route('/login', methods=['POST'], strict_slashes=False)
@@ -73,7 +80,6 @@ def login():
             email = json_data['email']
             password = json_data['password']
 
-            msg = {"message": "Something went wrong."}
             if not email or not password:
                 msg = {"message": "Error: Missing parameters!"}
                 return make_response(jsonify(msg), 400)
@@ -120,18 +126,25 @@ def update_pass():
             db = get_db()
             con, engine, metadata = db['con'], db['engine'], db['metadata']
             user_table = Table('User', metadata, autoload=True)
-            con.execute(user_table.update().where(user_table.c.email == email).values(
-                password=get_hashed_password(password).decode("utf-8")))
+            try:
+                con.execute(user_table.update().where(user_table.c.email == email).values(
+                    password=get_hashed_password(password).decode("utf-8")))
 
-            msg = {"message": "Success! User password is updated."}
-            return make_response(jsonify(msg), 200)
+                msg = {"message": "Success! User password is updated."}
+                return make_response(jsonify(msg), 200)
+            except SQLAlchemyError as e:
+                error = e.__dict__['orig']
+                print("DB ERROR: " + str(error))
+                msg = {"message": "A server error has been occurred. "
+                                  "Please try again later and contact us if the error persists. (Error code: "
+                                  + str(error.args[0]) + ")",
+                       "data": str(error)}
+                return make_response(jsonify(msg), 500)
 
 
 @bp.before_app_request
 def load_logged_in_user():
     user_id = session.get('user_id')
-    print('load', user_id)
-
     if user_id is None:
         g.user = None
     else:

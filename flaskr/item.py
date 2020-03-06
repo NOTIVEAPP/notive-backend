@@ -1,12 +1,10 @@
-import functools
 import time
-
 from flask import (
     Blueprint, g, request, jsonify, make_response, Response
 )
 from sqlalchemy import Table
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import and_
-from werkzeug.exceptions import abort
 from .util import validate_auth_key, get_json_from_keys
 from .db import get_db
 from .auth import login_required
@@ -21,18 +19,9 @@ def get_all():
     user = g.user
     db = get_db()
     con, engine, metadata = db['con'], db['engine'], db['metadata']
-    item_table = Table('Item', metadata, autoload=True)
-    list_table = Table('List', metadata, autoload=True)
 
     result = dict()
-    #result["items"] = []
-    #result["items"] = {}
     result_dict = {}
-
-    lists = list_table.select(list_table.c.user_id == user['id']).execute()
-
-    joined_table = item_table.join(list_table, list_table.c.id.label('l_id') == item_table.c.list_id).alias(flat=True)
-    items = joined_table.select(list_table.c.user_id == user['id']).execute()
 
     query_res = engine.execute("""
     SELECT
@@ -142,11 +131,20 @@ def create():
                 db = get_db()
                 con, engine, metadata = db['con'], db['engine'], db['metadata']
                 item_table = Table('Item', metadata, autoload=True)
-                res = con.execute(item_table.insert(), name=name, list_id=list_id, created_at=created_at)
-                data = {'item_id': res.lastrowid,
-                        'created_at': created_at}
-                msg = {"message": "An item has been successfully added to list named '" + list_name + "'.",
-                       "data": data}
+                try:
+                    res = con.execute(item_table.insert(), name=name, list_id=list_id, created_at=created_at)
+                    data = {'item_id': res.lastrowid,
+                            'created_at': created_at}
+                    msg = {"message": "An item has been successfully added to list named '" + list_name + "'.",
+                           "data": data}
+                except SQLAlchemyError as e:
+                    error = e.__dict__['orig']
+                    print("DB ERROR: " + str(error))
+                    msg = {"message": "A server error has been occurred. "
+                                      "Please try again later and contact us if the error persists. (Error code: "
+                                      + str(error.args[0]) + ")",
+                           "data": str(error)}
+                    return make_response(jsonify(msg), 500)
                 return make_response(jsonify(msg), 200)
 
 
@@ -201,11 +199,19 @@ def update(list_id, item_id):
                 msg = {"message": "Item is not yours!"}
                 return make_response(jsonify(msg), status)
             else:
-                db = get_db()
-                con, engine, metadata = db['con'], db['engine'], db['metadata']
-                item_table = Table('Item', metadata, autoload=True)
-                con.execute(item_table.update().where(item_table.c.id == item_id).values(name=name))
-
+                try:
+                    db = get_db()
+                    con, engine, metadata = db['con'], db['engine'], db['metadata']
+                    item_table = Table('Item', metadata, autoload=True)
+                    con.execute(item_table.update().where(item_table.c.id == item_id).values(name=name))
+                except SQLAlchemyError as e:
+                    error = e.__dict__['orig']
+                    print("DB ERROR: " + str(error))
+                    msg = {"message": "A server error has been occurred. "
+                                      "Please try again later and contact us if the error persists. (Error code: "
+                                      + str(error.args[0]) + ")",
+                           "data": str(error)}
+                    return make_response(jsonify(msg), 500)
                 msg = {"message": "Success! Item name is updated."}
                 return make_response(jsonify(msg), 200)
 
@@ -224,20 +230,29 @@ def check(list_id, item_id):
             msg = {"message": "Item is not yours!"}
             return make_response(jsonify(msg), status)
         else:
-            is_done = bool(user_item['is_done'])
-            db = get_db()
-            con, engine, metadata = db['con'], db['engine'], db['metadata']
-            item_table = Table('Item', metadata, autoload=True)
+            try:
+                is_done = bool(user_item['is_done'])
+                db = get_db()
+                con, engine, metadata = db['con'], db['engine'], db['metadata']
+                item_table = Table('Item', metadata, autoload=True)
 
-            if not is_done:
-                con.execute(item_table.update().where(item_table.c.id == item_id).values(is_done=1,
-                                                                                         finished_at=int(time.time())))
-                msg = {"message": "Item is marked as complete!"}
-            else:
-                con.execute(item_table.update().where(item_table.c.id == item_id).values(is_done=0,
-                                                                                         finished_at=None))
-                msg = {"message": "Item is marked as not completed!"}
-            return make_response(jsonify(msg), 200)
+                if not is_done:
+                    con.execute(item_table.update().where(item_table.c.id == item_id)
+                                .values(is_done=1, finished_at=int(time.time())))
+                    msg = {"message": "Item is marked as complete!"}
+                else:
+                    con.execute(item_table.update().where(item_table.c.id == item_id).values(is_done=0,
+                                                                                             finished_at=None))
+                    msg = {"message": "Item is marked as not completed!"}
+                return make_response(jsonify(msg), 200)
+            except SQLAlchemyError as e:
+                error = e.__dict__['orig']
+                print("DB ERROR: " + str(error))
+                msg = {"message": "A server error has been occurred. "
+                                  "Please try again later and contact us if the error persists. (Error code: "
+                                  + str(error.args[0]) + ")",
+                       "data": str(error)}
+                return make_response(jsonify(msg), 500)
 
 
 @bp.route('/<int:list_id>/<int:item_id>', methods=['DELETE'], strict_slashes=False)
@@ -254,10 +269,19 @@ def delete(list_id, item_id):
             msg = {"message": "Item is not yours!"}
             return make_response(jsonify(msg), status)
         else:
-            db = get_db()
-            con, engine, metadata = db['con'], db['engine'], db['metadata']
-            item_table = Table('Item', metadata, autoload=True)
-            con.execute(item_table.delete().where(item_table.c.id == item_id))
+            try:
+                db = get_db()
+                con, engine, metadata = db['con'], db['engine'], db['metadata']
+                item_table = Table('Item', metadata, autoload=True)
+                con.execute(item_table.delete().where(item_table.c.id == item_id))
 
-            msg = {"message": "Item is deleted succesfully!"}
-            return make_response(jsonify(msg), 200)
+                msg = {"message": "Item is deleted successfully!"}
+                return make_response(jsonify(msg), 200)
+            except SQLAlchemyError as e:
+                error = e.__dict__['orig']
+                print("DB ERROR: " + str(error))
+                msg = {"message": "A server error has been occurred. "
+                                  "Please try again later and contact us if the error persists. (Error code: "
+                                  + str(error.args[0]) + ")",
+                       "data": str(error)}
+                return make_response(jsonify(msg), 500)
