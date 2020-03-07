@@ -15,7 +15,7 @@ def get_db():
     return {'con': g.con, 'engine': g.engine, 'metadata': g.metadata}
 
 
-def close_db():
+def close_db(e=None):
     con = g.pop('con', None)
 
     if con is not None:
