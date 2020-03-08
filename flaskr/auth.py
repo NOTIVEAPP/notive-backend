@@ -8,6 +8,7 @@ from sqlalchemy import Table
 from sqlalchemy.exc import SQLAlchemyError
 from .util import validate_auth_key, get_json_from_keys
 from .db import get_db
+from .env import FSQ_CLIENT_ID, FSQ_CLIENT_SECRET
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -140,6 +141,16 @@ def update_pass():
                                   + str(error.args[0]) + ")",
                        "data": str(error)}
                 return make_response(jsonify(msg), 500)
+
+
+@bp.route('/fsq_access', methods=['GET'], strict_slashes=False)
+def provide_fsq_access():
+    if not validate_auth_key(request):
+        return Response(status=401)
+    else:
+        data = {"FSQ_CLIENT_ID": FSQ_CLIENT_ID,
+                "FSQ_CLIENT_SECRET": FSQ_CLIENT_SECRET}
+        return make_response(jsonify(data), 200)
 
 
 @bp.before_app_request
