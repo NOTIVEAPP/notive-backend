@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from .util import validate_auth_key, get_json_from_keys
 from .db import get_db
 from .env import FSQ_CLIENT_ID, FSQ_CLIENT_SECRET
+from email_validator import validate_email, EmailNotValidError
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -38,6 +39,13 @@ def register():
             name = json_data['name']
             password_plain = json_data['password']
             email = json_data['email']
+
+            try:
+                v = validate_email(email)  # validate and get info
+                email = v["email"]  # replace with normalized form
+            except EmailNotValidError as e:
+                # email is not valid, exception message is human-readable
+                return make_response(jsonify({"message": str(e)}), 400)
 
             db = get_db()
             con, engine, metadata = db['con'], db['engine'], db['metadata']
