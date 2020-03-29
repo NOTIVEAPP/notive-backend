@@ -18,6 +18,8 @@ CREATE TABLE `List` (
 	`id` INT(10) PRIMARY KEY AUTO_INCREMENT,
 	`name` varchar(100) NOT NULL,
 	`is_done` BOOLEAN NOT NULL DEFAULT '0',
+	`is_muted` BOOLEAN NOT NULL DEFAULT '0',
+	`is_archived` BOOLEAN NOT NULL DEFAULT '0',
 	`user_id` INT(10) NOT NULL,
 	`created_at` INT(11) NOT NULL,
 	`finished_at` INT(11),

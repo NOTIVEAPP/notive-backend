@@ -197,3 +197,79 @@ def delete(l_id):
                                   + str(error.args[0]) + ")",
                        "data": str(error)}
                 return make_response(jsonify(msg), 500)
+
+
+@bp.route('/<int:l_id>/mute', methods=['PUT'], strict_slashes=False)
+@login_required
+def mute(l_id):
+    if not validate_auth_key(request):
+        return Response(status=401)
+    else:
+        user_list, status = get_list(l_id)
+        if user_list is None or status is 404:
+            msg = {"message": "List does not exist!"}
+            return make_response(jsonify(msg), status)
+        elif status is 403:
+            msg = {"message": "List is not yours!"}
+            return make_response(jsonify(msg), status)
+        else:
+            try:
+                is_muted = bool(user_list['is_muted'])
+                db = get_db()
+                con, engine, metadata = db['con'], db['engine'], db['metadata']
+                list_table = Table('List', metadata, autoload=True)
+
+                if not is_muted:
+                    con.execute(list_table.update().where(list_table.c.id == l_id)
+                                .values(is_muted=1))
+                    msg = {"message": "List is muted."}
+                else:
+                    con.execute(list_table.update().where(list_table.c.id == list_table).values(is_muted=0))
+                    msg = {"message": "List is unmuted."}
+                return make_response(jsonify(msg), 200)
+            except SQLAlchemyError as e:
+                error = e.__dict__['orig']
+                print("DB ERROR: " + str(error))
+                msg = {"message": "A server error has been occurred. "
+                                  "Please try again later and contact us if the error persists. (Error code: "
+                                  + str(error.args[0]) + ")",
+                       "data": str(error)}
+                return make_response(jsonify(msg), 500)
+
+
+@bp.route('/<int:l_id>/archive', methods=['PUT'], strict_slashes=False)
+@login_required
+def archive(l_id):
+    if not validate_auth_key(request):
+        return Response(status=401)
+    else:
+        user_list, status = get_list(l_id)
+        if user_list is None or status is 404:
+            msg = {"message": "List does not exist!"}
+            return make_response(jsonify(msg), status)
+        elif status is 403:
+            msg = {"message": "List is not yours!"}
+            return make_response(jsonify(msg), status)
+        else:
+            try:
+                is_archived = bool(user_list['is_archived'])
+                db = get_db()
+                con, engine, metadata = db['con'], db['engine'], db['metadata']
+                list_table = Table('List', metadata, autoload=True)
+
+                if not is_archived:
+                    con.execute(list_table.update().where(list_table.c.id == l_id)
+                                .values(is_archived=1))
+                    msg = {"message": "List is archived."}
+                else:
+                    con.execute(list_table.update().where(list_table.c.id == list_table).values(is_archived=0))
+                    msg = {"message": "List is active."}
+                return make_response(jsonify(msg), 200)
+            except SQLAlchemyError as e:
+                error = e.__dict__['orig']
+                print("DB ERROR: " + str(error))
+                msg = {"message": "A server error has been occurred. "
+                                  "Please try again later and contact us if the error persists. (Error code: "
+                                  + str(error.args[0]) + ")",
+                       "data": str(error)}
+                return make_response(jsonify(msg), 500)
