@@ -224,7 +224,7 @@ def mute(l_id):
                                 .values(is_muted=1))
                     msg = {"message": "List is muted."}
                 else:
-                    con.execute(list_table.update().where(list_table.c.id == list_table).values(is_muted=0))
+                    con.execute(list_table.update().where(list_table.c.id == l_id).values(is_muted=0))
                     msg = {"message": "List is unmuted."}
                 return make_response(jsonify(msg), 200)
             except SQLAlchemyError as e:
@@ -262,7 +262,7 @@ def archive(l_id):
                                 .values(is_archived=1))
                     msg = {"message": "List is archived."}
                 else:
-                    con.execute(list_table.update().where(list_table.c.id == list_table).values(is_archived=0))
+                    con.execute(list_table.update().where(list_table.c.id == l_id).values(is_archived=0))
                     msg = {"message": "List is active."}
                 return make_response(jsonify(msg), 200)
             except SQLAlchemyError as e:
