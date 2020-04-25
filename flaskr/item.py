@@ -92,7 +92,8 @@ def get_item_only(list_id, item_id):
                            "list_id": list_id,
                            "is_done": item['is_done'],
                            "finished_att": item['finished_at'],
-                           "created_at": item['created_at']}
+                           "created_at": item['created_at']
+                           "radius": item['radius']}
                   }
         data = {'data': result}
         return make_response(jsonify(data), status)
@@ -113,6 +114,7 @@ def create():
         else:
             name = json_data['name']
             list_id = json_data['list_id']
+            radius = "1000" # default value
             created_at = int(time.time())
 
             if name is None:
@@ -132,7 +134,7 @@ def create():
                 con, engine, metadata = db['con'], db['engine'], db['metadata']
                 item_table = Table('Item', metadata, autoload=True)
                 try:
-                    res = con.execute(item_table.insert(), name=name, list_id=list_id, created_at=created_at)
+                    res = con.execute(item_table.insert(), name=name, list_id=list_id, created_at=created_at, radius=radius)
                     data = {'item_id': res.lastrowid,
                             'created_at': created_at}
                     msg = {"message": "An item has been successfully added to list named '" + list_name + "'.",
@@ -157,7 +159,7 @@ def get_item(list_id, item_id, check_user=True):
     item = joined_table.select(and_(item_table.c.id == item_id, list_table.c.id == list_id)).with_only_columns(
             [item_table.c.id, item_table.c.name,
              item_table.c.list_id, item_table.c.is_done,
-             item_table.c.created_at, item_table.c.finished_at, list_table.c.user_id]).execute().first()
+             item_table.c.created_at, item_table.c.radius,item_table.c.finished_at, list_table.c.user_id]).execute().first()
 
     if not item:
         status = 404
@@ -186,9 +188,10 @@ def update(list_id, item_id):
             return make_response(jsonify({"message": "Invalid parameters."}), 400)
         else:
             name = json_data['name']
+            radius = json_data['radius']
 
-            if name is None:
-                msg = {"message": "Please provide a name!"}
+            if name is None and radius is None:
+                msg = {"message": "Please provide a name or radius!"}
                 return make_response(jsonify(msg), 400)
 
             user_item, status = get_item(list_id, item_id)
@@ -203,7 +206,11 @@ def update(list_id, item_id):
                     db = get_db()
                     con, engine, metadata = db['con'], db['engine'], db['metadata']
                     item_table = Table('Item', metadata, autoload=True)
-                    con.execute(item_table.update().where(item_table.c.id == item_id).values(name=name))
+
+                    if radius is None:
+                        con.execute(item_table.update().where(item_table.c.id == item_id).values(name=name))
+                    else:
+                        con.execute(item_table.update().where(item_table.c.id == item_id).values(radius=radius))
                 except SQLAlchemyError as e:
                     error = e.__dict__['orig']
                     print("DB ERROR: " + str(error))

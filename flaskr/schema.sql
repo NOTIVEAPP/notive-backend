@@ -33,6 +33,7 @@ CREATE TABLE `Item` (
 	`is_done` BOOLEAN NOT NULL DEFAULT '0',
 	`created_at` INT(11) NOT NULL,
 	`finished_at` INT(11),
+	`radius` varchar(50) NOT NULL,
 	FOREIGN KEY (list_id) REFERENCES List(id) on delete cascade on update cascade
 );
 
