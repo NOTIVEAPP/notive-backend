@@ -92,7 +92,7 @@ def get_item_only(list_id, item_id):
                            "list_id": list_id,
                            "is_done": item['is_done'],
                            "finished_att": item['finished_at'],
-                           "created_at": item['created_at']
+                           "created_at": item['created_at'],
                            "radius": item['radius']}
                   }
         data = {'data': result}
