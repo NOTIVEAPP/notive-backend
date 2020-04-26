@@ -181,14 +181,21 @@ def update(list_id, item_id):
         return Response(status=401)
     else:
         json_data = get_json_from_keys(request, ['name'])
+        if json_data is None:
+            json_data = get_json_from_keys(request, ['radius'])
+
         if json_data is False:
             return make_response(jsonify(
                 {"message": "Request body must be JSON."}), 400)
         elif json_data is None:
             return make_response(jsonify({"message": "Invalid parameters."}), 400)
         else:
-            name = json_data['name']
-            radius = json_data['radius']
+            name = None
+            if 'name' in json_data:
+                name = json_data['name']
+            radius = None
+            if 'radius' in json_data:
+                radius = json_data['radius']
 
             if name is None and radius is None:
                 msg = {"message": "Please provide a name or radius!"}
@@ -207,10 +214,12 @@ def update(list_id, item_id):
                     con, engine, metadata = db['con'], db['engine'], db['metadata']
                     item_table = Table('Item', metadata, autoload=True)
 
-                    if radius is None:
+                    if radius is None and name is not None:
                         con.execute(item_table.update().where(item_table.c.id == item_id).values(name=name))
-                    else:
+                    elif name is None and radius is not None:
                         con.execute(item_table.update().where(item_table.c.id == item_id).values(radius=radius))
+                    else:
+                        con.execute(item_table.update().where(item_table.c.id == item_id).values(name=name, radius=radius))
                 except SQLAlchemyError as e:
                     error = e.__dict__['orig']
                     print("DB ERROR: " + str(error))
@@ -219,7 +228,7 @@ def update(list_id, item_id):
                                       + str(error.args[0]) + ")",
                            "data": str(error)}
                     return make_response(jsonify(msg), 500)
-                msg = {"message": "Success! Item name is updated."}
+                msg = {"message": "Success! Item is updated."}
                 return make_response(jsonify(msg), 200)
 
 
