@@ -5,7 +5,7 @@ from flask import (
 from sqlalchemy import Table
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import and_
-from .util import validate_auth_key, get_json_from_keys
+from .util import validate_auth_key, get_json_from_keys, get_json_from_keys_optional
 from .db import get_db
 from .auth import login_required
 from .list import get_list
@@ -183,11 +183,7 @@ def update(list_id, item_id):
     if not validate_auth_key(request):
         return Response(status=401)
     else:
-        json_data = get_json_from_keys(request, ['name'])
-        if json_data is None:
-            json_data = get_json_from_keys(request, ['distance'])
-        if json_data is None:
-            json_data = get_json_from_keys(request, ['frequency'])
+        json_data = get_json_from_keys_optional(request, ['name', 'distance', 'frequency'])
 
         if json_data is False:
             return make_response(jsonify(

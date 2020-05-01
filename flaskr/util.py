@@ -31,3 +31,17 @@ def get_json_from_keys(request, keys):
         return values
     else:
         return False
+
+
+def get_json_from_keys_optional(request, keys):
+    if request.is_json:
+        json_data = request.get_json()
+        values = {}
+        for key in keys:
+            if key in json_data:
+                values[key] = json_data[key]
+            else:
+                values[key] = None
+        return values
+    else:
+        return False
