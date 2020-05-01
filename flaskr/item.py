@@ -93,7 +93,8 @@ def get_item_only(list_id, item_id):
                            "is_done": item['is_done'],
                            "finished_att": item['finished_at'],
                            "created_at": item['created_at'],
-                           "radius": item['radius']}
+                           "distance": item['distance'],
+                           "frequency": item['frequency']}
                   }
         data = {'data': result}
         return make_response(jsonify(data), status)
@@ -114,7 +115,8 @@ def create():
         else:
             name = json_data['name']
             list_id = json_data['list_id']
-            radius = "1000" # default value
+            distance = 5000  # meters default
+            frequency = 60  # minutes default
             created_at = int(time.time())
 
             if name is None:
@@ -134,7 +136,8 @@ def create():
                 con, engine, metadata = db['con'], db['engine'], db['metadata']
                 item_table = Table('Item', metadata, autoload=True)
                 try:
-                    res = con.execute(item_table.insert(), name=name, list_id=list_id, created_at=created_at, radius=radius)
+                    res = con.execute(item_table.insert(), name=name, list_id=list_id, created_at=created_at,
+                                      distance=distance, frequency=frequency)
                     data = {'item_id': res.lastrowid,
                             'created_at': created_at}
                     msg = {"message": "An item has been successfully added to list named '" + list_name + "'.",
@@ -157,9 +160,9 @@ def get_item(list_id, item_id, check_user=True):
     list_table = Table('List', metadata, autoload=True)
     joined_table = item_table.join(list_table, list_table.c.id == item_table.c.list_id)
     item = joined_table.select(and_(item_table.c.id == item_id, list_table.c.id == list_id)).with_only_columns(
-            [item_table.c.id, item_table.c.name,
-             item_table.c.list_id, item_table.c.is_done,
-             item_table.c.created_at, item_table.c.radius,item_table.c.finished_at, list_table.c.user_id]).execute().first()
+            [item_table.c.id, item_table.c.name, item_table.c.list_id, item_table.c.is_done,
+             item_table.c.created_at, item_table.c.distance, item_table.c.frequency, item_table.c.finished_at,
+             list_table.c.user_id]).execute().first()
 
     if not item:
         status = 404
@@ -182,7 +185,9 @@ def update(list_id, item_id):
     else:
         json_data = get_json_from_keys(request, ['name'])
         if json_data is None:
-            json_data = get_json_from_keys(request, ['radius'])
+            json_data = get_json_from_keys(request, ['distance'])
+        if json_data is None:
+            json_data = get_json_from_keys(request, ['frequency'])
 
         if json_data is False:
             return make_response(jsonify(
@@ -191,14 +196,17 @@ def update(list_id, item_id):
             return make_response(jsonify({"message": "Invalid parameters."}), 400)
         else:
             name = None
+            distance = None
+            frequency = None
             if 'name' in json_data:
                 name = json_data['name']
-            radius = None
-            if 'radius' in json_data:
-                radius = json_data['radius']
+            if 'distance' in json_data:
+                distance = json_data['distance']
+            if 'frequency' in json_data:
+                frequency = json_data['frequency']
 
-            if name is None and radius is None:
-                msg = {"message": "Please provide a name or radius!"}
+            if name is None and distance is None and frequency is None:
+                msg = {"message": "Please provide one of the following: name, distance, frequency!"}
                 return make_response(jsonify(msg), 400)
 
             user_item, status = get_item(list_id, item_id)
@@ -214,12 +222,12 @@ def update(list_id, item_id):
                     con, engine, metadata = db['con'], db['engine'], db['metadata']
                     item_table = Table('Item', metadata, autoload=True)
 
-                    if radius is None and name is not None:
+                    if name is not None:
                         con.execute(item_table.update().where(item_table.c.id == item_id).values(name=name))
-                    elif name is None and radius is not None:
-                        con.execute(item_table.update().where(item_table.c.id == item_id).values(radius=radius))
-                    else:
-                        con.execute(item_table.update().where(item_table.c.id == item_id).values(name=name, radius=radius))
+                    if distance is not None:
+                        con.execute(item_table.update().where(item_table.c.id == item_id).values(distance=distance))
+                    if frequency is not None:
+                        con.execute(item_table.update().where(item_table.c.id == item_id).values(frequency=frequency))
                 except SQLAlchemyError as e:
                     error = e.__dict__['orig']
                     print("DB ERROR: " + str(error))
